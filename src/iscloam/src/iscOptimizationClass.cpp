@@ -72,7 +72,14 @@ bool ISCOptimizationClass::addPoseToGraph(const pcl::PointCloud<pcl::PointXYZL>:
             // ROS_WARN("matched frame id %d", (int)matched_frame_id.size());
             gtsam::Pose3 transform_pose3 =  pose_optimized_arr[matched_frame_id[i]].between(pose_optimized_arr.back());
             // ROS_WARN("pose %f,%f,%f, [%f,%f,%f,%f]",transform_pose3.translation().x(),transform_pose3.translation().y(),transform_pose3.translation().z(),transform_pose3.rotation().toQuaternion().w(),transform_pose3.rotation().toQuaternion().x(),transform_pose3.rotation().toQuaternion().y(),transform_pose3.rotation().toQuaternion().z());
-            Eigen::Isometry3d transform = pose3ToEigen(pose_optimized_arr[matched_frame_id[i]].between(pose_optimized_arr.back()));
+            // Eigen::Isometry3d transform = pose3ToEigen(pose_optimized_arr[matched_frame_id[i]].between(pose_optimized_arr.back()));
+            Eigen::Isometry3d transform=Eigen::Isometry3d::Identity();
+            estimateOdom(pointcloud_edge_arr[matched_frame_id[i]],
+                         pointcloud_edge_arr.back(),
+                         pointcloud_surf_arr[matched_frame_id[i]],
+                         pointcloud_surf_arr.back(),
+                         transform
+                          );
             //ROS_WARN("flag 1 %d,%d",matched_frame_id[i],pointcloud_edge_arr.size());
             if(geometryConsistencyVerification(pointcloud_edge_arr.size()-1, matched_frame_id[i], transform)){
                 gtsam::Pose3 loop_temp = eigenToPose3(transform);
