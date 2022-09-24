@@ -4,7 +4,7 @@
 
 #include "lidarOptimization.h"
 #include <unordered_set>
-std::unordered_set<uint32_t> label_set({0,
+std::unordered_set<uint32_t> label_set({
     40,44,48,49,50,51,60,70,71,72,80,81
 });//static objects and landmarks
 
@@ -67,6 +67,10 @@ bool LabelEdgeAnalyticCostFunction::Evaluate(double const *const *parameters, do
     if(label_set.find(label)==label_set.end())
     {
         weight=2.;
+    }
+    if (label == 0)
+    {
+        weight = 0.5;
     }
 
     residuals[0] = weight*nu.norm() / de_norm;
@@ -133,6 +137,10 @@ bool LabelSurfNormAnalyticCostFunction::Evaluate(double const *const *parameters
     if (label_set.find(label) == label_set.end())
     {
         weight = 2.;
+    }
+    if (label==0)
+    {
+        weight=0.5;
     }
     residuals[0] =weight*( plane_unit_norm.dot(point_w) + negative_OA_dot_norm);
 
