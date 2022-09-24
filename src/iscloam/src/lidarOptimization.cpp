@@ -3,6 +3,10 @@
 // Homepage https://wanghan.pro
 
 #include "lidarOptimization.h"
+#include <unordered_set>
+std::unordered_set<uint32_t> label_set({0,
+    40,44,48,49,50,51,60,70,71,72,80,81
+});//static objects and landmarks
 
 EdgeAnalyticCostFunction::EdgeAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_, Eigen::Vector3d last_point_b_)
         : curr_point(curr_point_), last_point_a(last_point_a_), last_point_b(last_point_b_){
@@ -40,8 +44,50 @@ bool EdgeAnalyticCostFunction::Evaluate(double const *const *parameters, double 
 
     return true;
  
-}   
+}
 
+LabelEdgeAnalyticCostFunction::LabelEdgeAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_, Eigen::Vector3d last_point_b_,int label_)
+    : curr_point(curr_point_), last_point_a(last_point_a_), last_point_b(last_point_b_),label(label_)
+{
+}
+
+bool LabelEdgeAnalyticCostFunction::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
+{
+
+    Eigen::Map<const Eigen::Quaterniond> q_last_curr(parameters[0]);
+    Eigen::Map<const Eigen::Vector3d> t_last_curr(parameters[0] + 4);
+    Eigen::Vector3d lp;
+    lp = q_last_curr * curr_point + t_last_curr;
+
+    Eigen::Vector3d nu = (lp - last_point_a).cross(lp - last_point_b);
+    Eigen::Vector3d de = last_point_a - last_point_b;
+    double de_norm = de.norm();
+
+    double weight=.1;
+    if(label_set.find(label)==label_set.end())
+    {
+        weight=2.;
+    }
+
+    residuals[0] = weight*nu.norm() / de_norm;
+
+    if (jacobians != NULL)
+    {
+        if (jacobians[0] != NULL)
+        {
+            Eigen::Matrix3d skew_lp = skew(lp);
+            Eigen::Matrix<double, 3, 6> dp_by_se3;
+            dp_by_se3.block<3, 3>(0, 0) = -skew_lp;
+            (dp_by_se3.block<3, 3>(0, 3)).setIdentity();
+            Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor>> J_se3(jacobians[0]);
+            J_se3.setZero();
+            Eigen::Matrix3d skew_de = skew(de);
+            J_se3.block<1, 6>(0, 0) = -nu.transpose() / nu.norm() * skew_de * dp_by_se3 / de_norm;
+        }
+    }
+
+    return true;
+}
 
 SurfNormAnalyticCostFunction::SurfNormAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_) 
                                                         : curr_point(curr_point_), plane_unit_norm(plane_unit_norm_), negative_OA_dot_norm(negative_OA_dot_norm_){
@@ -71,8 +117,40 @@ bool SurfNormAnalyticCostFunction::Evaluate(double const *const *parameters, dou
     }
     return true;
 
-}   
+}
 
+LabelSurfNormAnalyticCostFunction::LabelSurfNormAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_,int label_)
+    : curr_point(curr_point_), plane_unit_norm(plane_unit_norm_), negative_OA_dot_norm(negative_OA_dot_norm_),label(label_)
+{
+}
+
+bool LabelSurfNormAnalyticCostFunction::Evaluate(double const *const *parameters, double *residuals, double **jacobians) const
+{
+    Eigen::Map<const Eigen::Quaterniond> q_w_curr(parameters[0]);
+    Eigen::Map<const Eigen::Vector3d> t_w_curr(parameters[0] + 4);
+    Eigen::Vector3d point_w = q_w_curr * curr_point + t_w_curr;
+    double weight = .1;
+    if (label_set.find(label) == label_set.end())
+    {
+        weight = 2.;
+    }
+    residuals[0] =weight*( plane_unit_norm.dot(point_w) + negative_OA_dot_norm);
+
+    if (jacobians != NULL)
+    {
+        if (jacobians[0] != NULL)
+        {
+            Eigen::Matrix3d skew_point_w = skew(point_w);
+            Eigen::Matrix<double, 3, 6> dp_by_se3;
+            dp_by_se3.block<3, 3>(0, 0) = -skew_point_w;
+            (dp_by_se3.block<3, 3>(0, 3)).setIdentity();
+            Eigen::Map<Eigen::Matrix<double, 1, 7, Eigen::RowMajor>> J_se3(jacobians[0]);
+            J_se3.setZero();
+            J_se3.block<1, 6>(0, 0) = plane_unit_norm.transpose() * dp_by_se3;
+        }
+    }
+    return true;
+}
 
 bool PoseSE3Parameterization::Plus(const double *x, const double *delta, double *x_plus_delta) const
 {

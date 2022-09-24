@@ -67,7 +67,7 @@ void loop_callback(const nav_msgs::PathConstPtr &msg)
         Eigen::Matrix3d r = q.toRotationMatrix();
         foutput << r(0, 0) << " " << r(0, 1) << " " << r(0, 2) << " " << result(0) << " "
                 << r(1, 0) << " " << r(1, 1) << " " << r(1, 2) << " " << result(1) << " "
-                << r(2, 0) << " " << r(2, 1) << " " << r(2, 2) << " " << result(2) << endl;
+                << r(2, 0) << " " << r(2, 1) << " " << r(2, 2)<< " " << result(2) << endl;
     }
 
 

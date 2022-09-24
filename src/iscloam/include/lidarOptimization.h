@@ -25,6 +25,19 @@ class EdgeAnalyticCostFunction : public ceres::SizedCostFunction<1, 7> {
 		Eigen::Vector3d last_point_b;
 };
 
+class LabelEdgeAnalyticCostFunction : public ceres::SizedCostFunction<1, 7>
+{
+public:
+	LabelEdgeAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d last_point_a_, Eigen::Vector3d last_point_b_,int label_);
+	virtual ~LabelEdgeAnalyticCostFunction() {}
+	virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
+
+	Eigen::Vector3d curr_point;
+	Eigen::Vector3d last_point_a;
+	Eigen::Vector3d last_point_b;
+	int label;
+};
+
 class SurfNormAnalyticCostFunction : public ceres::SizedCostFunction<1, 7> {
 	public:
 		SurfNormAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_);
@@ -34,6 +47,19 @@ class SurfNormAnalyticCostFunction : public ceres::SizedCostFunction<1, 7> {
 		Eigen::Vector3d curr_point;
 		Eigen::Vector3d plane_unit_norm;
 		double negative_OA_dot_norm;
+};
+
+class LabelSurfNormAnalyticCostFunction : public ceres::SizedCostFunction<1, 7>
+{
+public:
+	LabelSurfNormAnalyticCostFunction(Eigen::Vector3d curr_point_, Eigen::Vector3d plane_unit_norm_, double negative_OA_dot_norm_,int label_);
+	virtual ~LabelSurfNormAnalyticCostFunction() {}
+	virtual bool Evaluate(double const *const *parameters, double *residuals, double **jacobians) const;
+
+	Eigen::Vector3d curr_point;
+	Eigen::Vector3d plane_unit_norm;
+	double negative_OA_dot_norm;
+	int label;
 };
 
 class PoseSE3Parameterization : public ceres::LocalParameterization {

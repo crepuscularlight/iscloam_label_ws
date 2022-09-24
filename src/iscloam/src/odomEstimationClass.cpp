@@ -3,10 +3,7 @@
 // Homepage https://wanghan.pro
 
 #include "odomEstimationClass.h"
-#include <unordered_set>
-std::unordered_set<uint32_t> label_set({
-    40,44,48,49,50,51,60,70,71,72,80,81
-});//static objects and landmarks
+
 
 void OdomEstimationClass::init(lidar::Lidar lidar_param, double map_resolution){
     //init local map
@@ -106,10 +103,7 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZL
     int corner_num=0;
     for (int i = 0; i < (int)pc_in->points.size(); i++)
     {
-        if (label_set.find(pc_in->points[i].label)==label_set.end())
-        {
-            continue;
-        }
+
         pcl::PointXYZL point_temp;
         pointAssociateToMap(&(pc_in->points[i]), &point_temp);
 
@@ -148,7 +142,7 @@ void OdomEstimationClass::addEdgeCostFactor(const pcl::PointCloud<pcl::PointXYZL
                 point_a = 0.1 * unit_direction + point_on_line;
                 point_b = -0.1 * unit_direction + point_on_line;
 
-                ceres::CostFunction *cost_function = new EdgeAnalyticCostFunction(curr_point, point_a, point_b);  
+                ceres::CostFunction *cost_function = new LabelEdgeAnalyticCostFunction(curr_point, point_a, point_b,pc_in->points[i].label);  
                 problem.AddResidualBlock(cost_function, loss_function, parameters);
                 corner_num++;   
             }                           
@@ -164,10 +158,7 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZL
     int surf_num=0;
     for (int i = 0; i < (int)pc_in->points.size(); i++)
     {
-        if (label_set.find(pc_in->points[i].label) == label_set.end())
-        {
-            continue;
-        }
+
         pcl::PointXYZL point_temp;
         pointAssociateToMap(&(pc_in->points[i]), &point_temp);
         std::vector<int> pointSearchInd;
@@ -205,7 +196,7 @@ void OdomEstimationClass::addSurfCostFactor(const pcl::PointCloud<pcl::PointXYZL
             Eigen::Vector3d curr_point(pc_in->points[i].x, pc_in->points[i].y, pc_in->points[i].z);
             if (planeValid)
             {
-                ceres::CostFunction *cost_function = new SurfNormAnalyticCostFunction(curr_point, norm, negative_OA_dot_norm);    
+                ceres::CostFunction *cost_function = new LabelSurfNormAnalyticCostFunction(curr_point, norm, negative_OA_dot_norm,pc_in->points[i].label);    
                 problem.AddResidualBlock(cost_function, loss_function, parameters);
 
                 surf_num++;
